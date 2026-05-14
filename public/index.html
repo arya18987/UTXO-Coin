@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTXO Coin - Konsep Unspent Transaction Output</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>💰 UTXO Coin</h1>
+            <p>Unspent Transaction Output · Saldo = Jumlah dari semua UTXO yang belum terpakai</p>
+            <div class="server-status" id="serverStatus">
+                🔄 Connecting to server...
+            </div>
+        </header>
+
+        <!-- Balance Card -->
+        <div class="balance-card">
+            <div class="balance-label">Saldo Arya</div>
+            <div class="balance-value" id="totalBalance">0</div>
+            <div class="balance-unit">UTXO</div>
+            <div class="balance-hint">
+                ✨ Dihitung dari penjumlahan seluruh UTXO milik Arya ✨
+            </div>
+        </div>
+
+        <!-- Analogi -->
+        <div class="analogi-card">
+            <h3>🧾 Analogi Uang Tunai</h3>
+            <p>Seperti membawa beberapa lembar uang di dompet (Rp5.000, Rp10.000, Rp50.000). 
+            Saat bayar, kamu pilih kombinasi lembaran → lembaran lama hangus → dapat lembaran kembalian baru.</p>
+            <p><strong>UTXO = setiap "lembaran uang" yang punya ID unik dan nilai tersendiri.</strong></p>
+        </div>
+
+        <!-- Main Content: 2 Columns -->
+        <div class="main-layout">
+            <!-- Left: UTXO List -->
+            <div class="panel">
+                <h2>📦 Unspent Transaction Outputs (UTXO)</h2>
+                <p class="subtitle">Setiap baris = satu "keping uang" milik Arya</p>
+                <div id="utxoList" class="utxo-list">
+                    <div class="loading">Loading UTXOs...</div>
+                </div>
+            </div>
+
+            <!-- Right: Actions -->
+            <div class="panel">
+                <h2>✉️ Kirim UTXO Coin</h2>
+                
+                <div class="form-group">
+                    <label>👤 Penerima:</label>
+                    <input type="text" id="recipient" placeholder="subarna, laras, dll" value="bob">
+                </div>
+
+                <div class="form-group">
+                    <label>🔢 Jumlah UTXO:</label>
+                    <input type="number" id="amount" placeholder="contoh: 350" value="350" min="1">
+                </div>
+
+                <button id="sendBtn" class="btn-primary">🚀 Kirim Transaksi</button>
+                <div id="errorMsg" class="error-msg"></div>
+                <div id="successMsg" class="success-msg"></div>
+
+                <hr>
+
+                <button id="resetBtn" class="btn-secondary">🔄 Reset ke Genesis UTXO</button>
+                
+                <div class="info-box">
+                    <h4>⚙️ Bagaimana UTXO Bekerja?</h4>
+                    <ol>
+                        <li>Sistem mencari UTXO milik Arya yang cukup untuk jumlah kirim</li>
+                        <li>UTXO yang terpakai <strong class="highlight">DIMUSNAHKAN</strong> (spent)</li>
+                        <li>Buat UTXO baru untuk penerima (jumlah kirim)</li>
+                        <li>Buat UTXO kembalian untuk Arya (jika ada kelebihan)</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Log -->
+        <div class="log-panel">
+            <h3>📜 Log Transaksi (UTXO Lifecycle)</h3>
+            <div id="transactionLog" class="transaction-log">
+                <div class="loading">Loading transaction history...</div>
+            </div>
+        </div>
+
+        <!-- System Stats -->
+        <div class="stats-panel">
+            <h3>📊 System Statistics</h3>
+            <div id="systemStats" class="stats-grid">
+                <div class="loading">Loading stats...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="utxo-core.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
