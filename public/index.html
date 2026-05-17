@@ -3,101 +3,526 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UTXO Coin - Konsep Unspent Transaction Output</title>
-    <link rel="stylesheet" href="style.css">
+    <title>JP 6: UTXO Coin - Smart Contract Version</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, 'Segoe UI', monospace;
+            background: linear-gradient(135deg, #1a472a 0%, #0d2818 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        header h1 { color: #1a472a; font-size: 2.5rem; }
+        .badge {
+            display: inline-block;
+            background: #ff9800;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        .balance-card {
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            border-radius: 24px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .balance-label { font-size: 1.2rem; color: #3b2a1f; }
+        .balance-value { font-size: 4rem; font-weight: bold; color: #1a472a; }
+        .contract-info {
+            background: #2d2d2d;
+            color: #f0f0f0;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .analogi {
+            background: #fff3e0;
+            border-left: 5px solid #ff9800;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .utxo-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .utxo-item {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .utxo-id { font-family: monospace; font-size: 0.7rem; color: #666; }
+        .form-group { margin-bottom: 20px; }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #1a472a;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:hover { background: #0d2818; }
+        .tx-hash {
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: #666;
+            word-break: break-all;
+        }
+        .log-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+        }
+        .transaction-log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        .error-msg {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8d7da;
+            color: #721c24;
+            border-radius: 8px;
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <h1>💰 UTXO Coin</h1>
-            <p>Unspent Transaction Output · Saldo = Jumlah dari semua UTXO yang belum terpakai</p>
-            <div class="server-status" id="serverStatus">
-                🔄 Connecting to server...
-            </div>
-        </header>
+<div class="container">
+    <header>
+        <h1>💰 UTXO Coin</h1>
+        <p>Unspent Transaction Output · Dengan Smart Contract</p>
+        <div class="badge">📜 Smart Contract v1.0.0 | UTXOManager</div>
+    </header>
 
-        <!-- Balance Card -->
-        <div class="balance-card">
-            <div class="balance-label">Saldo Arya</div>
-            <div class="balance-value" id="totalBalance">0</div>
-            <div class="balance-unit">UTXO</div>
-            <div class="balance-hint">
-                ✨ Dihitung dari penjumlahan seluruh UTXO milik Arya ✨
-            </div>
-        </div>
+    <div class="contract-info" id="contractInfo">
+        <div>📦 Loading contract info...</div>
+    </div>
 
-        <!-- Analogi -->
-        <div class="analogi-card">
-            <h3>🧾 Analogi Uang Tunai</h3>
-            <p>Seperti membawa beberapa lembar uang di dompet (Rp5.000, Rp10.000, Rp50.000). 
-            Saat bayar, kamu pilih kombinasi lembaran → lembaran lama hangus → dapat lembaran kembalian baru.</p>
-            <p><strong>UTXO = setiap "lembaran uang" yang punya ID unik dan nilai tersendiri.</strong></p>
-        </div>
+    <div class="balance-card">
+        <div class="balance-label">Saldo Arya</div>
+        <div class="balance-value" id="totalBalance">0</div>
+        <div style="font-size: 0.9rem;">✨ dihitung dari penjumlahan seluruh UTXO ✨</div>
+    </div>
 
-        <!-- Main Content: 2 Columns -->
-        <div class="main-layout">
-            <!-- Left: UTXO List -->
-            <div class="panel">
-                <h2>📦 Unspent Transaction Outputs (UTXO)</h2>
-                <p class="subtitle">Setiap baris = satu "keping uang" milik Arya</p>
-                <div id="utxoList" class="utxo-list">
-                    <div class="loading">Loading UTXOs...</div>
-                </div>
-            </div>
+    <div class="analogi">
+        <strong>🧾 Analogi Uang Tunai:</strong> Seperti membawa beberapa lembar uang di dompet (Rp5.000, Rp10.000, Rp50.000).
+        Saat bayar, kamu pilih kombinasi lembaran → lembaran lama hangus → dapat lembaran kembalian baru.
+    </div>
 
-            <!-- Right: Actions -->
-            <div class="panel">
-                <h2>✉️ Kirim UTXO Coin</h2>
-                
-                <div class="form-group">
-                    <label>👤 Penerima:</label>
-                    <input type="text" id="recipient" placeholder="subarna, laras, dll" value="bob">
-                </div>
-
-                <div class="form-group">
-                    <label>🔢 Jumlah UTXO:</label>
-                    <input type="number" id="amount" placeholder="contoh: 350" value="350" min="1">
-                </div>
-
-                <button id="sendBtn" class="btn-primary">🚀 Kirim Transaksi</button>
-                <div id="errorMsg" class="error-msg"></div>
-                <div id="successMsg" class="success-msg"></div>
-
-                <hr>
-
-                <button id="resetBtn" class="btn-secondary">🔄 Reset ke Genesis UTXO</button>
-                
-                <div class="info-box">
-                    <h4>⚙️ Bagaimana UTXO Bekerja?</h4>
-                    <ol>
-                        <li>Sistem mencari UTXO milik Arya yang cukup untuk jumlah kirim</li>
-                        <li>UTXO yang terpakai <strong class="highlight">DIMUSNAHKAN</strong> (spent)</li>
-                        <li>Buat UTXO baru untuk penerima (jumlah kirim)</li>
-                        <li>Buat UTXO kembalian untuk Arya (jika ada kelebihan)</li>
-                    </ol>
-                </div>
+    <div class="main-layout">
+        <div class="panel">
+            <h2>📦 Unspent Transaction Outputs (UTXO)</h2>
+            <p>Setiap baris = satu "keping uang" milik Arya</p>
+            <div id="utxoList" class="utxo-list">
+                <div>Loading...</div>
             </div>
         </div>
 
-        <!-- Transaction Log -->
-        <div class="log-panel">
-            <h3>📜 Log Transaksi (UTXO Lifecycle)</h3>
-            <div id="transactionLog" class="transaction-log">
-                <div class="loading">Loading transaction history...</div>
+        <div class="panel">
+            <h2>✉️ Kirim UTXO Coin</h2>
+            <div class="form-group">
+                <label>👤 Penerima:</label>
+                <input type="text" id="recipient" placeholder="bob, charlie, dll" value="bob">
             </div>
-        </div>
-
-        <!-- System Stats -->
-        <div class="stats-panel">
-            <h3>📊 System Statistics</h3>
-            <div id="systemStats" class="stats-grid">
-                <div class="loading">Loading stats...</div>
+            <div class="form-group">
+                <label>🔢 Jumlah UTXO:</label>
+                <input type="number" id="amount" placeholder="contoh: 350" value="350">
             </div>
+            <button id="sendBtn">🚀 Kirim Transaksi (via Smart Contract)</button>
+            <div id="errorMsg" class="error-msg"></div>
+            <div id="txHash" class="tx-hash" style="margin-top:10px; text-align:center;"></div>
         </div>
     </div>
 
-    <script src="utxo-core.js"></script>
-    <script src="app.js"></script>
+    <div class="log-panel">
+        <h3>📜 Log Transaksi (UTXO Lifecycle) + Smart Contract Events</h3>
+        <div id="transactionLog" class="transaction-log"></div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // ============= SMART CONTRACT: UTXOManager ==================
+    // ============================================================
+    
+    class UTXOSmartContract {
+        constructor() {
+            this.name = "UTXOManager";
+            this.version = "1.0.0";
+            this.utxos = [];
+            this.owner = "contract_deployer";
+            this.transactions = [];
+            this.events = [];
+        }
+
+        // 1. Deploy contract (constructor)
+        deploy(genesisOwner, genesisAmount) {
+            this.utxos.push({
+                id: this._generateId(),
+                owner: genesisOwner,
+                amount: genesisAmount,
+                createdAt: Date.now(),
+                contractVersion: this.version
+            });
+            
+            this._logEvent("ContractDeployed", {
+                owner: genesisOwner,
+                amount: genesisAmount,
+                contract: this.name,
+                timestamp: new Date().toISOString()
+            });
+            
+            return {
+                success: true,
+                message: `Smart Contract ${this.name} v${this.version} deployed`,
+                txHash: this._generateTxHash()
+            };
+        }
+
+        // 2. Transfer function via Smart Contract
+        transfer(from, to, amount) {
+            // Validasi
+            if (amount <= 0) {
+                return this._error("Jumlah harus lebih dari 0");
+            }
+            if (from === to) {
+                return this._error("Tidak bisa kirim ke diri sendiri");
+            }
+            
+            const senderBalance = this._getBalance(from);
+            if (senderBalance < amount) {
+                return this._error(`Saldo tidak cukup! (Saldo: ${senderBalance} UTXO)`);
+            }
+            
+            // === UTXO LOGIC INSIDE SMART CONTRACT ===
+            
+            // 1. Get sender's UTXOs
+            let senderUTXOs = this.utxos.filter(u => u.owner === from)
+                .sort((a,b) => b.amount - a.amount);
+            
+            // 2. Select UTXOs to cover amount
+            let selected = [];
+            let selectedSum = 0;
+            for (let utxo of senderUTXOs) {
+                if (selectedSum >= amount) break;
+                selected.push(utxo);
+                selectedSum += utxo.amount;
+            }
+            
+            // 3. Remove spent UTXOs (burn)
+            const spentIds = new Set(selected.map(u => u.id));
+            const spentUTXOs = [...selected];
+            this.utxos = this.utxos.filter(u => !spentIds.has(u.id));
+            
+            // 4. Calculate change
+            const changeAmount = selectedSum - amount;
+            
+            // 5. Mint new UTXOs
+            const newUTXOs = [];
+            
+            // Recipient UTXO
+            const recipientUTXO = {
+                id: this._generateId(),
+                owner: to,
+                amount: amount,
+                createdAt: Date.now(),
+                sourceTx: this._generateTxHash()
+            };
+            this.utxos.push(recipientUTXO);
+            newUTXOs.push(recipientUTXO);
+            
+            // Change UTXO
+            if (changeAmount > 0) {
+                const changeUTXO = {
+                    id: this._generateId(),
+                    owner: from,
+                    amount: changeAmount,
+                    createdAt: Date.now(),
+                    sourceTx: this._generateTxHash()
+                };
+                this.utxos.push(changeUTXO);
+                newUTXOs.push(changeUTXO);
+            }
+            
+            // 6. Log transaction
+            const txHash = this._generateTxHash();
+            this.transactions.unshift({
+                txHash,
+                from,
+                to,
+                amount,
+                changeAmount,
+                spentUTXOs: spentUTXOs.map(u => ({ id: u.id, amount: u.amount })),
+                newUTXOs: newUTXOs.map(u => ({ id: u.id, owner: u.owner, amount: u.amount })),
+                timestamp: Date.now(),
+                blockNumber: this.transactions.length + 1
+            });
+            
+            this._logEvent("Transfer", { 
+                from, to, amount, changeAmount, txHash,
+                spentUTXOs: spentUTXOs.length,
+                newUTXOs: newUTXOs.length
+            });
+            
+            return {
+                success: true,
+                txHash,
+                newBalance: this._getBalance(from),
+                message: `Transfer ${amount} UTXO dari ${from} ke ${to}`,
+                data: {
+                    spentUTXOs: spentUTXOs.map(u => ({ id: u.id, amount: u.amount })),
+                    newUTXOs: newUTXOs.map(u => ({ id: u.id, owner: u.owner, amount: u.amount })),
+                    changeAmount
+                }
+            };
+        }
+
+        // 3. View functions (read-only)
+        getBalance(address) {
+            return this._getBalance(address);
+        }
+        
+        getUTXOs(address) {
+            return [...this.utxos.filter(u => u.owner === address)];
+        }
+        
+        getTransactionHistory() {
+            return [...this.transactions];
+        }
+        
+        getContractInfo() {
+            return {
+                name: this.name,
+                version: this.version,
+                totalUTXOs: this.utxos.length,
+                totalValue: this.utxos.reduce((sum, u) => sum + u.amount, 0),
+                totalTransactions: this.transactions.length
+            };
+        }
+        
+        getEvents() {
+            return [...this.events];
+        }
+
+        // ========== INTERNAL FUNCTIONS (private) ==========
+        
+        _getBalance(owner) {
+            return this.utxos
+                .filter(u => u.owner === owner)
+                .reduce((sum, u) => sum + u.amount, 0);
+        }
+        
+        _generateId() {
+            return `utxo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        _generateTxHash() {
+            return `0x${Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+        }
+        
+        _logEvent(eventName, data) {
+            const event = {
+                eventName,
+                data,
+                timestamp: Date.now(),
+                blockNumber: this.events.length + 1
+            };
+            this.events.unshift(event);
+            console.log(`[SMART CONTRACT EVENT] ${eventName}:`, data);
+        }
+        
+        _error(message) {
+            return { success: false, error: message };
+        }
+    }
+
+    // ============= INISIALISASI SMART CONTRACT =============
+    const utxoContract = new UTXOSmartContract();
+    const deployment = utxoContract.deploy("arya", 1000);
+    
+    // ============= UI RENDER FUNCTIONS =============
+    
+    function renderContractInfo() {
+        const info = utxoContract.getContractInfo();
+        const events = utxoContract.getEvents();
+        document.getElementById('contractInfo').innerHTML = `
+            <div>📜 <strong>${info.name}</strong> v${info.version}</div>
+            <div>🔢 Total UTXO: ${info.totalUTXOs}</div>
+            <div>💰 Total Value: ${info.totalValue} UTXO</div>
+            <div>📝 Total Tx: ${info.totalTransactions}</div>
+            <div>🎟️ Events: ${events.length}</div>
+            <div>✅ Status: <span style="color:#4caf50;">Deployed</span></div>
+        `;
+    }
+    
+    function renderUTXOList() {
+        const container = document.getElementById('utxoList');
+        const aryaUtxos = utxoContract.getUTXOs('arya');
+        
+        if (aryaUtxos.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:20px;">✨ Tidak ada UTXO ✨</div>';
+        } else {
+            container.innerHTML = aryaUtxos.map(utxo => `
+                <div class="utxo-item">
+                    <div>
+                        <div class="utxo-id">🔹 ${utxo.id.substring(0, 12)}...</div>
+                        <div style="font-size:0.7rem;">kepemilikan: arya | ${new Date(utxo.createdAt).toLocaleTimeString()}</div>
+                    </div>
+                    <div style="font-size:1.3rem; font-weight:bold; color:#28a745;">${utxo.amount} 🪙</div>
+                </div>
+            `).join('');
+        }
+        
+        document.getElementById('totalBalance').innerText = utxoContract.getBalance('arya');
+    }
+    
+    function renderTransactionLog() {
+        const logDiv = document.getElementById('transactionLog');
+        const history = utxoContract.getTransactionHistory();
+        const events = utxoContract.getEvents();
+        
+        if (history.length === 0 && events.length === 0) {
+            logDiv.innerHTML = '<div>📭 Belum ada transaksi atau event</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        // Tampilkan events dari Smart Contract
+        if (events.length > 0) {
+            html += '<div style="color:#ffd700; margin-bottom:10px;">🔔 SMART CONTRACT EVENTS:</div>';
+            html += events.slice(0,5).map(e => `
+                <div style="margin-bottom: 8px; border-left: 2px solid #ff9800; padding-left: 10px;">
+                    <div style="color: #ffd700;">📢 ${e.eventName}</div>
+                    <div style="color: #9cdcfe; font-size:0.75rem;">${JSON.stringify(e.data).substring(0, 100)}</div>
+                </div>
+            `).join('');
+        }
+        
+        // Tampilkan transaksi
+        if (history.length > 0) {
+            html += '<div style="color:#ffd700; margin:10px 0;">📝 TRANSACTION HISTORY:</div>';
+            html += history.map(tx => `
+                <div style="margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 8px;">
+                    <div style="color: #6a9955;">📅 ${new Date(tx.timestamp).toLocaleTimeString()} | Block #${tx.blockNumber}</div>
+                    <div style="color: #9cdcfe;">💸 ${tx.from} → ${tx.to} : ${tx.amount} UTXO</div>
+                    <div style="color: #ce9178; font-size: 0.75rem;">Kembalian: ${tx.changeAmount} UTXO</div>
+                    <div style="color: #569cd6; font-size: 0.7rem;">TxHash: ${tx.txHash.substring(0, 20)}...</div>
+                    <div style="color: #6a9955; font-size: 0.7rem;">Spent: ${tx.spentUTXOs.map(u => u.amount).join(' + ')} → New: ${tx.newUTXOs.map(u => `${u.amount}(${u.owner})`).join(' + ')}</div>
+                </div>
+            `).join('');
+        }
+        
+        logDiv.innerHTML = html;
+    }
+    
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMsg');
+        errorDiv.innerHTML = `❌ ${message}`;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 4000);
+    }
+    
+    function showTxHash(txHash) {
+        const txDiv = document.getElementById('txHash');
+        txDiv.innerHTML = `✅ Transaction Hash: ${txHash}`;
+        setTimeout(() => {
+            txDiv.innerHTML = '';
+        }, 5000);
+    }
+    
+    function sendTransaction() {
+        const recipient = document.getElementById('recipient').value.trim();
+        const amount = parseInt(document.getElementById('amount').value);
+        
+        if (!recipient) {
+            showError('Penerima tidak boleh kosong');
+            return;
+        }
+        
+        if (isNaN(amount) || amount <= 0) {
+            showError('Jumlah harus lebih dari 0');
+            return;
+        }
+        
+        const result = utxoContract.transfer('arya', recipient, amount);
+        
+        if (result.success) {
+            renderUTXOList();
+            renderTransactionLog();
+            renderContractInfo();
+            showTxHash(result.txHash);
+            document.getElementById('amount').value = '';
+        } else {
+            showError(result.error);
+        }
+    }
+    
+    // ============= INITIAL RENDER =============
+    renderContractInfo();
+    renderUTXOList();
+    renderTransactionLog();
+    
+    // ============= EVENT LISTENER =============
+    document.getElementById('sendBtn').addEventListener('click', sendTransaction);
+    
+    console.log('✅ Smart Contract UTXOManager v1.0.0 Deployed!');
+    console.log('Deployment:', deployment);
+</script>
 </body>
 </html>
